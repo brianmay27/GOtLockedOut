@@ -1,7 +1,7 @@
 package main
 
 import (
-   "github.com/tarm/goserial"
+   "github.com/tarm/serial"
    "time"
    "log"
    "fmt"
@@ -26,7 +26,7 @@ const addr = 0xffffffff
 const minConf = 100
 
 func initF(chans channels) {
-   c := & serial.Config{Name: "/dev/ttyAMA0", Baud: 115200}
+   c := & serial.Config{Name: "/dev/ttyAMA0", Baud: 115200, ReadTimeout: time.Second * 5}
    fmt.Println("opening")
    enabled := true
    s, err := serial.OpenPort(c)
@@ -47,7 +47,7 @@ func initF(chans channels) {
                break
             case todo.status == 10:
                enabled = false
-               status := p.enroll(2)
+               status := p.enroll(0x01)
                fmt.Println(status)
                enabled = true
                break
@@ -68,7 +68,9 @@ func initF(chans channels) {
          }
       }
    }()
-   t := time.NewTimer(time.Duration(10)*time.Second)
+
+   //Now that Im using a ReadTimeout, I should not need to worry about it becoming hung
+/*   t := time.NewTimer(time.Duration(10)*time.Second)
 
    go func(ch <-chan time.Time) {
       for {
@@ -80,11 +82,11 @@ func initF(chans channels) {
             fmt.Println("Error opening serial")
          }
       }
-   }(t.C)
+   }(t.C)*/
    for {
       if !enabled {
          time.Sleep(time.Duration(500)*time.Millisecond)
-         t.Reset(time.Duration(10)*time.Second)
+         //t.Reset(time.Duration(10)*time.Second)
          continue
       }
       img := p.getImage()
@@ -97,8 +99,12 @@ func initF(chans channels) {
                chans.fOut <- fingerInfo{0, id}
                chans.lIn <- lcdInfo{0, 0}
             }
-            t.Reset(time.Duration(15)*time.Second)
+            //t.Reset(time.Duration(15)*time.Second)
             img := p.getPicture()
+            if img == nil {
+               chans.lIn <- lcdInfo{0,5}
+               continue
+            }
             t := time.Now()
             filet := fmt.Sprintf("%d-%2d-%2d:%2d:%2d", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute())
             file, _ := os.Create("/home/pi/log/" + filet + ".png")
@@ -107,7 +113,7 @@ func initF(chans channels) {
 
          }
       }
-      t.Reset(time.Duration(10)*time.Second)
+      //t.Reset(time.Duration(10)*time.Second)
       time.Sleep(time.Duration(2)*time.Millisecond)
    }
 
@@ -276,7 +282,7 @@ func (p *fingerP) image2Tz(slot byte) byte {
 }
 
 func (p *fingerP) search() (int, int) {
-   p.writePacket(FINGERPRINT_COMMANDPACKET, []byte{FINGERPRINT_HISPEEDSEARCH, 0x01, 0x00, 0x00, 0xA3})
+   p.writePacket(FINGERPRINT_COMMANDPACKET, []byte{FINGERPRINT_HISPEEDSEARCH, 0x01, 0x00, 0x00, 0x00, 0xA3})
    c, err := p.readPacket(nil)
    if err != nil {
       return 0,0
@@ -304,7 +310,7 @@ func (p *fingerP) createModel() byte {
 }
 
 func (p *fingerP) storeModel(id int) byte {
-   p.writePacket(FINGERPRINT_COMMANDPACKET, []byte{FINGERPRINT_STORE, byte(id >> 8), byte(id & 0xFF)})
+   p.writePacket(FINGERPRINT_COMMANDPACKET, []byte{FINGERPRINT_STORE, byte(0x01), byte((id & 0xFF00) >> 8), byte(id & 0xFF)})
    c, err := p.readPacket(nil)
    if err != nil {
       return 0
@@ -333,6 +339,7 @@ func (p *fingerP) enroll(id int) error {
         t.Reset(time.Duration(15) * time.Second)
         continue
      }
+     fmt.Println(id)
      i = p.storeModel(id)
      if i == FINGERPRINT_OK {
         p.ch.lIn <- lcdInfo{0,3}
@@ -356,6 +363,10 @@ func (p *fingerP) getImageBlock(loc byte) {
 }
 
 func (p *fingerP) getPicture() image.Image {
+   i := p.getImage()
+   if i != FINGERPRINT_OK {
+      return nil
+   }
    p.writePacket(FINGERPRINT_COMMANDPACKET, []byte{0x0a})
    b, _ := p.readPacket(nil)
    b, _ = p.readPacket(nil)

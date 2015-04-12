@@ -2,7 +2,7 @@ package main
 
 const(
    DEBUG = true
-   DEBUG_LEVEL = 6
+   DEBUG_LEVEL = 4
 
 	FINGERPRINT_OK                 = 0x00
 	FINGERPRINT_PACKETRECIEVEERR   = 0x01

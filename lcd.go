@@ -35,6 +35,9 @@ func (d *lcd) run(chans channels) {
       } else if c.status == 3 {
          d.clear()
          d.writeBytes([]byte("Success"))
+      } else if c.status == 5 {
+         d.clear()
+         d.writeBytes([]byte("Try agian"))
       } else if c.pin == 0 {
          d.pinDefault()
       } else if c.pin >= 7 {
