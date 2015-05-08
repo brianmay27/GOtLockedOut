@@ -56,7 +56,7 @@ func (d *lcd) pinDefault() {
 }
 
 func (d *lcd) writePin(l int) {
-   loc := 2+(2*(l-1))
+   loc := 2*l
    if d.pin > l {
       loc += 2
    }

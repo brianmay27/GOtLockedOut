@@ -42,12 +42,14 @@ func (d *keypad) disable() {
    d.write(0x05)
    d.enabled = false
 }
-
+/*
+Well I should document my shitty api but its easy :B
+*/
 func (d *keypad) run(chans channels) {
    for {
       <-chans.kIn
       if !d.enabled {
-         fmt.Println("Getting pin")
+         blog(4, "Getting pin")
          err := d.enable()
          if err != nil {
             continue
@@ -57,22 +59,22 @@ func (d *keypad) run(chans channels) {
          for i := 0; i < 6; {
             t, err := d.Bus.ReadByte(addressKeypad) 
             if err != nil {
-               fmt.Println("error reading keypad")
+               blog(2, "error reading keypad")
                continue
             }
             if t == 0x23 || t == 0x2A {
                i--
                chans.lIn<-lcdInfo{i,0}
-               chans.kOut<-keypadInfo{&b, i}
+               //chans.kOut<-keypadInfo{&b, i}
             } else if t != byte(0xff) {
-               fmt.Printf("Got pin: %x\n", t)
                b[i] = t
                i++
                chans.lIn<-lcdInfo{i,0}
-               chans.kOut<-keypadInfo{&b, i}
+               //chans.kOut<-keypadInfo{&b, i}
             }
             time.Sleep(time.Duration(100)*time.Millisecond)
          }
+         blog(5, "Got pin: ", b)
          d.disable()
          chans.lIn<-lcdInfo{7,0}
          chans.kOut<-keypadInfo{&b, 6}

@@ -202,67 +202,6 @@ func (p *fingerP) readPacket(rec []byte) ([]byte, error) {
    return b, nil
 }
 
-
-
-//Ugh, this was getting shitty
-/*func (p *fingerP) readPacket(rec []byte) ([]byte, error) {
-   b := make([]byte, 12)
-   n, err := p.io.Read(b)
-   b = b[:n]
-   if err != nil {
-      return nil, err
-   }
-   if rec != nil {
-      b = append(rec, b...)
-      fmt.Println("appending")
-   }
-   if n < 12 {
-      c := make([]byte, 12)
-      m, err := p.io.Read(c)
-      if err != nil {
-         return nil, err
-      }
-      b = append(b,c[:m]...)
-   }
-   if len(b) < 9 {
-      return nil, errors.New("Something went wrong: returned packet too small.") 
-   }
-   if b[0] != FINGERPRINT_STARTCODE>>8 || b[1] != FINGERPRINT_STARTCODE&0xff {
-      return nil, errors.New("Invalid start code")
-   }
-   length := int((b[7]<<8) | b[8]) - 2
-
-   if b[6] == 0x02 && length +11 <= len(b) {
-      fmt.Println(b, length)
-      c, _ := p.readPacket(b[length + 11 : len(b)])
-      b = append(b, c...)
-      fmt.Println("working")
-      return b, nil
-   }
-   for {
-      if length + 11 == len(b) {
-         break
-      } else if length + 11 < len(b) {
-         fmt.Println("length is more")
-         fmt.Println(len(b))
-         fmt.Println(b)
-         c, _ := p.readPacket(b[length + 11 : len(b)])
-         fmt.Println(c)
-         b = append(b,c...)
-         return b, nil
-      }
-      fmt.Println("Ugh, it got HERE.")
-      fmt.Println(len(b), length)
-      c := make([]byte, length - len(b) + 11)
-      m, err := p.io.Read(c)
-      if err != nil {
-         return nil, err
-      }
-      b = append(b,c[:m]...)
-   }
-   return b[9:9+length], nil
-}*/
-
 func (p *fingerP) getImage() byte {
    p.writePacket(FINGERPRINT_COMMANDPACKET, []byte{FINGERPRINT_GETIMAGE})
    c, err := p.readPacket(nil)
